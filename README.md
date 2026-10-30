@@ -13,8 +13,9 @@ The heavy model loops: it searches the web (DuckDuckGo) and retries with refined
 ```bash
 uv sync
 echo "GOOGLE_API_KEY=..." > .env          # from aistudio.google.com
-uv sync --extra stt                        # only if you want local audio transcription
 ```
+
+Audio transcription runs Parakeet through `transformers` (CUDA 12.6 build of torch) and needs `ffmpeg` on your PATH to decode files. The model (~2.5 GB) downloads on first use.
 
 Optional env: `STT_MODEL`, `GEMINI_ROUTER_MODEL`, `GEMINI_LIGHT_MODEL`, `GEMINI_HEAVY_MODEL`.
 
