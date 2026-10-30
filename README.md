@@ -2,14 +2,9 @@
 
 LangGraph router: audio is transcribed locally (Parakeet v3), then Gemini answers via a light or heavy model.
 
-```
-[START] -(audio?)-> [transcribe] --\
-        -(text)-------------------> [evaluate_intent] -(translate)-> [light_llm] -----------> [END]
-                                                      -(heavy)-----> [heavy_llm] -(answer)--> [END]
-                                                                       ^    |
-                                                                       |    +-(search)-> [tools: web_search]
-                                                                       +-------------------------+
-```
+![How a request is routed: audio is transcribed, intent is classified, translations go to the light model, everything else to the heavy model, which loops through web search before answering](docs/routing-flow.svg)
+
+<sub>Source: [`docs/routing-flow.html`](docs/routing-flow.html). Regenerate the SVG from it after edits.</sub>
 
 The heavy model loops: it searches the web (DuckDuckGo) and retries with refined queries until it can answer, limited searches.
 

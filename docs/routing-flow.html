@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Request Routing Flow</title>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --color-paper:   #2d3142;
+      --color-ink:     #f5f5f5;
+      --color-muted:   #bfc0c0;
+      --color-accent:  #f08a59;
+      --font-sans:     'Geist', system-ui, sans-serif;
+      --font-serif:    'Instrument Serif', serif;
+      --font-mono:     'Geist Mono', ui-monospace, monospace;
+    }
+    body {
+      font-family: var(--font-sans);
+      background: var(--color-paper);
+      color: var(--color-ink);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 3rem 2rem;
+    }
+    .frame { max-width: 1200px; width: 100%; min-width: 0; }
+    .diagram-container { width: 100%; overflow-x: auto; }
+    .eyebrow {
+      font-family: var(--font-mono);
+      font-size: 0.66rem;
+      font-weight: 500;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--color-muted);
+      margin-bottom: 0.5rem;
+    }
+    h1 {
+      font-family: var(--font-serif);
+      font-size: clamp(1.5rem, 2.4vw + 0.75rem, 2rem);
+      font-weight: 400;
+      letter-spacing: -0.02em;
+      line-height: 1.15;
+      color: var(--color-ink);
+      margin-bottom: 1.5rem;
+    }
+    svg { width: 100%; min-width: 960px; display: block; }
+    @media print {
+      .diagram-container { overflow-x: visible; }
+      svg { min-width: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <p class="eyebrow">Flowchart · LangGraph router</p>
+    <h1>How a request is routed</h1>
+
+    <div class="diagram-container">
+      <svg viewBox="0 0 960 600" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="routing-flow-title routing-flow-desc">
+        <title id="routing-flow-title">How a request is routed</title>
+        <desc id="routing-flow-desc">Audio requests are transcribed first, then an intent classifier sends translations to the light Gemini model and everything else to the heavy model, which loops through web search up to three times before answering.</desc>
+        <defs>
+          <pattern id="dots" width="22" height="22" patternUnits="userSpaceOnUse">
+            <circle cx="1" cy="1" r="0.9" fill="rgba(245,245,245,0.10)"/>
+          </pattern>
+          <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#bfc0c0"/></marker>
+          <marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#f08a59"/></marker>
+        </defs>
+
+        <rect width="100%" height="100%" fill="#2d3142"/>
+        <rect width="100%" height="100%" fill="url(#dots)" opacity="0.55"/>
+
+        <!-- Arrows (drawn first, behind nodes) -->
+        <!-- Request → Audio? -->
+        <line x1="128" y1="232" x2="160" y2="232" stroke="#bfc0c0" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <!-- Audio? AUDIO → transcribe -->
+        <path d="M208,192 L208,112 Q208,104 216,104 L320,104" fill="none" stroke="#bfc0c0" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <!-- Audio? TEXT → merge -->
+        <line x1="256" y1="232" x2="388" y2="232" stroke="#bfc0c0" stroke-width="1.2"/>
+        <!-- transcribe → merge -->
+        <line x1="392" y1="132" x2="392" y2="228" stroke="#bfc0c0" stroke-width="1.2"/>
+        <!-- merge → evaluate_intent -->
+        <line x1="396" y1="232" x2="432" y2="232" stroke="#bfc0c0" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <!-- evaluate_intent TRANSLATE → light_llm -->
+        <path d="M512,180 L512,112 Q512,104 520,104 L624,104" fill="none" stroke="#bfc0c0" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <!-- evaluate_intent HEAVY → heavy_llm -->
+        <path d="M512,284 L512,352 Q512,360 520,360 L624,360" fill="none" stroke="#bfc0c0" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <!-- light_llm → Response -->
+        <path d="M776,104 L864,104 Q872,104 872,112 L872,208" fill="none" stroke="#bfc0c0" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <!-- heavy_llm ANSWER → Response -->
+        <path d="M776,360 L864,360 Q872,360 872,352 L872,256" fill="none" stroke="#bfc0c0" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <!-- heavy_llm SEARCH → tools (coral — the loop) -->
+        <line x1="676" y1="388" x2="676" y2="452" stroke="#f08a59" stroke-width="1.4" marker-end="url(#arrow-accent)"/>
+        <!-- tools RESULTS → heavy_llm (return, dashed) -->
+        <line x1="724" y1="452" x2="724" y2="388" stroke="#bfc0c0" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
+
+        <!-- Arrow labels -->
+        <rect x="216" y="142" width="36" height="12" rx="2" fill="#2d3142"/>
+        <text x="234" y="151" fill="#bfc0c0" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.12em">AUDIO</text>
+
+        <rect x="306" y="212" width="32" height="12" rx="2" fill="#2d3142"/>
+        <text x="322" y="221" fill="#bfc0c0" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.12em">TEXT</text>
+
+        <rect x="520" y="136" width="60" height="12" rx="2" fill="#2d3142"/>
+        <text x="550" y="145" fill="#bfc0c0" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.12em">TRANSLATE</text>
+
+        <rect x="520" y="312" width="40" height="12" rx="2" fill="#2d3142"/>
+        <text x="540" y="321" fill="#bfc0c0" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.12em">HEAVY</text>
+
+        <rect x="880" y="298" width="44" height="12" rx="2" fill="#2d3142"/>
+        <text x="902" y="307" fill="#bfc0c0" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.12em">ANSWER</text>
+
+        <rect x="624" y="414" width="44" height="12" rx="2" fill="#2d3142"/>
+        <text x="646" y="423" fill="#f08a59" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.12em">SEARCH</text>
+
+        <rect x="732" y="414" width="52" height="12" rx="2" fill="#2d3142"/>
+        <text x="758" y="423" fill="#bfc0c0" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.12em">RESULTS</text>
+
+        <!-- Start oval: Request -->
+        <rect x="32" y="208" width="96" height="48" rx="20" fill="#2d3142"/>
+        <rect x="32" y="208" width="96" height="48" rx="20" fill="rgba(245,245,245,0.03)" stroke="rgba(245,245,245,0.30)" stroke-width="1"/>
+        <text x="80" y="230" fill="#f5f5f5" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">Request</text>
+        <text x="80" y="246" fill="#bfc0c0" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">POST /process</text>
+
+        <!-- Decision: audio input? (check_file_type) -->
+        <polygon points="208,192 256,232 208,272 160,232" fill="#393e53" stroke="#f5f5f5" stroke-width="1"/>
+        <text x="208" y="236" fill="#f5f5f5" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">Audio?</text>
+
+        <!-- Step: transcribe -->
+        <rect x="320" y="76" width="144" height="56" rx="6" fill="#2d3142"/>
+        <rect x="320" y="76" width="144" height="56" rx="6" fill="#393e53" stroke="#f5f5f5" stroke-width="1"/>
+        <rect x="328" y="82" width="28" height="12" rx="2" fill="transparent" stroke="rgba(245,245,245,0.40)" stroke-width="0.8"/>
+        <text x="342" y="91" fill="rgba(245,245,245,0.80)" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">STT</text>
+        <text x="392" y="108" fill="#f5f5f5" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">Transcribe</text>
+        <text x="392" y="123" fill="#bfc0c0" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">transcribe · parakeet</text>
+
+        <!-- Merge point -->
+        <circle cx="392" cy="232" r="4" fill="#f5f5f5"/>
+
+        <!-- Decision: classify intent (evaluate_intent) -->
+        <polygon points="512,180 592,232 512,284 432,232" fill="#393e53" stroke="#f5f5f5" stroke-width="1"/>
+        <text x="512" y="228" fill="#f5f5f5" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">Classify intent</text>
+        <text x="512" y="244" fill="#bfc0c0" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">evaluate_intent</text>
+
+        <!-- Step: light_llm -->
+        <rect x="624" y="76" width="152" height="56" rx="6" fill="#2d3142"/>
+        <rect x="624" y="76" width="152" height="56" rx="6" fill="#393e53" stroke="#f5f5f5" stroke-width="1"/>
+        <rect x="632" y="82" width="28" height="12" rx="2" fill="transparent" stroke="rgba(245,245,245,0.40)" stroke-width="0.8"/>
+        <text x="646" y="91" fill="rgba(245,245,245,0.80)" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">LLM</text>
+        <text x="700" y="108" fill="#f5f5f5" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">Light model</text>
+        <text x="700" y="123" fill="#bfc0c0" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">light_llm · 2.5-flash</text>
+
+        <!-- Step: heavy_llm (coral focal) -->
+        <rect x="624" y="332" width="152" height="56" rx="6" fill="#2d3142"/>
+        <rect x="624" y="332" width="152" height="56" rx="6" fill="rgba(240,138,89,0.10)" stroke="#f08a59" stroke-width="1"/>
+        <rect x="632" y="338" width="28" height="12" rx="2" fill="transparent" stroke="rgba(240,138,89,0.60)" stroke-width="0.8"/>
+        <text x="646" y="347" fill="#f08a59" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">LLM</text>
+        <text x="700" y="364" fill="#f5f5f5" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">Heavy model</text>
+        <text x="700" y="379" fill="#bfc0c0" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">heavy_llm · 2.5-pro</text>
+
+        <!-- External: web_search tool -->
+        <rect x="624" y="452" width="152" height="56" rx="6" fill="#2d3142"/>
+        <rect x="624" y="452" width="152" height="56" rx="6" fill="rgba(245,245,245,0.03)" stroke="rgba(245,245,245,0.30)" stroke-width="1"/>
+        <rect x="632" y="458" width="28" height="12" rx="2" fill="transparent" stroke="rgba(245,245,245,0.40)" stroke-width="0.8"/>
+        <text x="646" y="467" fill="rgba(245,245,245,0.80)" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">TOOL</text>
+        <text x="700" y="484" fill="#f5f5f5" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">Web search</text>
+        <text x="700" y="499" fill="#bfc0c0" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">duckduckgo · max 3</text>
+
+        <!-- End oval: Response -->
+        <rect x="816" y="208" width="112" height="48" rx="20" fill="#2d3142"/>
+        <rect x="816" y="208" width="112" height="48" rx="20" fill="rgba(245,245,245,0.03)" stroke="rgba(245,245,245,0.30)" stroke-width="1"/>
+        <text x="872" y="230" fill="#f5f5f5" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">Response</text>
+        <text x="872" y="246" fill="#bfc0c0" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">output · model</text>
+
+        <!-- Callout -->
+        <text x="796" y="476" fill="#bfc0c0" font-size="14" font-style="italic" font-family="'Instrument Serif', serif">refines the query</text>
+        <text x="796" y="494" fill="#bfc0c0" font-size="14" font-style="italic" font-family="'Instrument Serif', serif">until it can answer</text>
+
+        <!-- Legend -->
+        <line x1="40" y1="540" x2="920" y2="540" stroke="rgba(245,245,245,0.10)" stroke-width="0.8"/>
+        <text x="40" y="556" fill="#bfc0c0" font-size="8" font-family="'Geist Mono', monospace" letter-spacing="0.18em">LEGEND · SHAPE CARRIES TYPE</text>
+
+        <rect x="40" y="572" width="24" height="12" rx="6" fill="rgba(245,245,245,0.03)" stroke="rgba(245,245,245,0.30)" stroke-width="1"/>
+        <text x="72" y="582" fill="#bfc0c0" font-size="8.5" font-family="'Geist', sans-serif">Start / end</text>
+
+        <rect x="176" y="572" width="24" height="12" rx="2" fill="#393e53" stroke="#f5f5f5" stroke-width="1"/>
+        <text x="208" y="582" fill="#bfc0c0" font-size="8.5" font-family="'Geist', sans-serif">Graph node</text>
+
+        <polygon points="300,578 312,572 324,578 312,584" fill="#393e53" stroke="#f5f5f5" stroke-width="1"/>
+        <text x="332" y="582" fill="#bfc0c0" font-size="8.5" font-family="'Geist', sans-serif">Routing decision</text>
+
+        <rect x="448" y="572" width="24" height="12" rx="2" fill="rgba(245,245,245,0.03)" stroke="rgba(245,245,245,0.30)" stroke-width="1"/>
+        <text x="480" y="582" fill="#bfc0c0" font-size="8.5" font-family="'Geist', sans-serif">External tool</text>
+
+        <line x1="592" y1="578" x2="620" y2="578" stroke="#f08a59" stroke-width="1.4" marker-end="url(#arrow-accent)"/>
+        <text x="628" y="582" fill="#bfc0c0" font-size="8.5" font-family="'Geist', sans-serif">Search loop</text>
+
+        <line x1="736" y1="578" x2="764" y2="578" stroke="#bfc0c0" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
+        <text x="772" y="582" fill="#bfc0c0" font-size="8.5" font-family="'Geist', sans-serif">Tool result</text>
+      </svg>
+    </div>
+  </div>
+</body>
+</html>
